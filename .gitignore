@@ -1,0 +1,15 @@
+
+# Claude Code
+.claude/
+
+# IDE
+.idea/
+
+# Logs
+logs/
+
+# Maven
+**/target/
+*.class
+
+dist/

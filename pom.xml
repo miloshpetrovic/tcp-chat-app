@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>tcp-chat-app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>tcp-chat-app</name>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>23.0.2</javafx.version>
+        <!-- Native JavaFX flavour. Auto-detected by the profiles below; override to cross-build, e.g.
+             mvn clean package -Djavafx.platform=linux  (win | linux | linux-aarch64 | mac | mac-aarch64) -->
+        <javafx.platform>win</javafx.platform>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>platform-win</id>
+            <activation><os><family>windows</family></os></activation>
+            <properties><javafx.platform>win</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>platform-linux</id>
+            <activation><os><family>unix</family><name>Linux</name><arch>amd64</arch></os></activation>
+            <properties><javafx.platform>linux</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>platform-linux-aarch64</id>
+            <activation><os><family>unix</family><name>Linux</name><arch>aarch64</arch></os></activation>
+            <properties><javafx.platform>linux-aarch64</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>platform-mac</id>
+            <activation><os><family>mac</family><arch>x86_64</arch></os></activation>
+            <properties><javafx.platform>mac</javafx.platform></properties>
+        </profile>
+        <profile>
+            <id>platform-mac-aarch64</id>
+            <activation><os><family>mac</family><arch>aarch64</arch></os></activation>
+            <properties><javafx.platform>mac-aarch64</javafx.platform></properties>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+            <!-- mvn clean javafx:run -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>com.example.tcpchat.Main</mainClass>
+                </configuration>
+            </plugin>
+            <!-- mvn clean package -> target/tcp-chat-app-&lt;platform&gt;.jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <finalName>tcp-chat-app-${javafx.platform}</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.example.tcpchat.Launcher</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
