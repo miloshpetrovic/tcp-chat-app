@@ -1,12 +1,14 @@
 package com.example.tcpchat;
 
 import com.example.tcpchat.ui.ClientPanel;
+import com.example.tcpchat.ui.ScriptPanel;
 import com.example.tcpchat.ui.ServerPanel;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -21,11 +23,14 @@ public class Main extends Application {
 
         HBox.setHgrow(clientPanel, Priority.ALWAYS);
         HBox.setHgrow(serverPanel, Priority.ALWAYS);
-        HBox root = new HBox(10, clientPanel, serverPanel);
+        HBox panels = new HBox(10, clientPanel, serverPanel);
+        VBox.setVgrow(panels, Priority.ALWAYS);
+
+        VBox root = new VBox(10, panels, new ScriptPanel(clientPanel, serverPanel));
         root.setPadding(new Insets(10));
 
         stage.setTitle("TCP Chat");
-        stage.setScene(new Scene(root, 1100, 650));
+        stage.setScene(new Scene(root, 1100, 800));
         stage.show();
     }
 

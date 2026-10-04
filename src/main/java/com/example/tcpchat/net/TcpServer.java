@@ -142,6 +142,15 @@ public final class TcpServer {
         conn.send(data);
     }
 
+    /** Drops the connected client (if any) but keeps listening. */
+    public void disconnectClient() {
+        TcpConnection conn;
+        synchronized (this) {
+            conn = current;
+        }
+        if (conn != null) conn.close();
+    }
+
     /** Releases the sockets and the executor; the instance is unusable afterwards. */
     public void shutdown() {
         stop();

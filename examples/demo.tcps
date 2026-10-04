@@ -1,0 +1,31 @@
+# Demo protocol. Prerequisites: both channels connected (server panel has a client,
+# client panel is connected to some server). Then press "Start protocol".
+#
+# Syntax (one command per line, # starts a comment):
+#   encoding UTF-8|ASCII           how "strings" become bytes (default UTF-8)
+#   timeout 5s                     default wait for every expect (ms | s | m)
+#   pause 2s
+#   client|server send "text"      escapes: \n \r \t \0 \\ \" \xNN (raw byte)
+#   client|server send hex 02 41 03
+#   client|server expect "text"    buffer must START with text; only that is consumed
+#   client|server expect contains "text"
+#   client|server expect /regex/   whole buffered text must match
+#   client|server expect hex 41 42
+#   client|server expect any
+#   ... expect ... timeout 10s     per-step timeout
+#   client|server close
+
+encoding UTF-8
+timeout 30s
+
+client send    "A"
+client expect  "B"
+pause 2s
+server expect  "C"
+server send    "D"
+server expect  /^HELLO \d+$/
+client expect  contains "OK"
+client send    "line1\r\nline2\x00"
+client send    hex 02 41 42 03
+client expect  any timeout 5s
+client close

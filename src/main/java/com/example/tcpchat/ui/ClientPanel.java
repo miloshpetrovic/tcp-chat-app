@@ -59,6 +59,11 @@ public final class ClientPanel extends ChannelPanel {
     }
 
     @Override
+    public void closeChannel() {
+        client.disconnect();
+    }
+
+    @Override
     protected void applyStatus(ConnectionStatus status) {
         boolean idle = status == ConnectionStatus.DISCONNECTED || status == ConnectionStatus.ERROR;
         connectButton.setDisable(!idle);

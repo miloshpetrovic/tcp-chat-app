@@ -102,6 +102,11 @@ final class ChatView extends VBox {
         }
     }
 
+    /** Shows bytes sent by something other than the input field (e.g. a script). */
+    void appendSent(byte[] data) {
+        line("SENT", new String(data, encodingBox.getValue().charset()));
+    }
+
     private void resetDecoder() {
         decoder = encodingBox.getValue().charset().newDecoder()
                 .onMalformedInput(CodingErrorAction.REPLACE)

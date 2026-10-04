@@ -49,6 +49,11 @@ public final class ServerPanel extends ChannelPanel {
     }
 
     @Override
+    public void closeChannel() {
+        server.disconnectClient();
+    }
+
+    @Override
     protected void applyStatus(ConnectionStatus status) {
         boolean idle = status == ConnectionStatus.STOPPED || status == ConnectionStatus.ERROR;
         startButton.setDisable(!idle);
