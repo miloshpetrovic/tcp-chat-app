@@ -9,11 +9,12 @@
 #   client|server send hex 02 41 03
 #   client|server expect "text"    buffer must START with text; only that is consumed
 #   client|server expect contains "text"
-#   client|server expect /regex/   whole buffered text must match
+#   client|server expect /regex/   must match at the start of the buffer; only the match is consumed
 #   client|server expect hex 41 42
 #   client|server expect any
 #   ... expect ... timeout 10s     per-step timeout
 #   client|server close
+#   array / repeat / ${...}        see loops.tcps
 
 encoding UTF-8
 timeout 30s

@@ -82,10 +82,12 @@ class LoopbackTest {
     @Test
     void sendDoesNotAppendNewline() throws Exception {
         try (ServerSocket raw = new ServerSocket(0)) {
-            TcpClient client = new TcpClient(new Recorder());
+            Recorder events = new Recorder();
+            TcpClient client = new TcpClient(events);
             try {
                 client.connect("127.0.0.1", raw.getLocalPort());
                 try (Socket peer = raw.accept()) {
+                    events.await(ConnectionStatus.CONNECTED); // accept() can return before the client registered the connection
                     client.send("Hello server".getBytes(StandardCharsets.UTF_8));
                     client.disconnect(); // peer then sees EOF, so we can read everything that was sent
                     assertEquals("Hello server", new String(peer.getInputStream().readAllBytes(), StandardCharsets.UTF_8));

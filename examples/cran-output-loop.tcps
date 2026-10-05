@@ -1,0 +1,18 @@
+encoding ASCII
+timeout 30s
+
+array palettes [["0100301", "R001", "5004"],["0800201", "R002", "7004"],["0100201", "R001", "5004"],["0800101", "R002", "7004"], ["0100101", "R001", "5004"]]
+
+repeat palettes as i {
+     server expect  /LVS1UST1DD..00........3005\?\?\?\?${palettes[i][1]}..OK${palettes[i][0]}001/
+     server send    "UST1LVS1441000000101013005????${palettes[i][1]}18OK${palettes[i][0]}001"
+     pause 3s
+     client send    "UST1LVS1164600000101013005????${palettes[i][2]}18OK${palettes[i][0]}001"
+     client expect  /LVS1UST1AF..00........3005\?\?\?\?${palettes[i][2]}..OK${palettes[i][0]}001/
+     pause 3s
+     client send    "UST1LVS1175700000101013005????300518OK${palettes[i][0]}001"
+     client expect  /LVS1UST1AG..00........3005\?\?\?\?3005..OK${palettes[i][0]}001/
+     pause 3s
+     client send    "UST1LVS1185800000101013005????300518OK${palettes[i][0]}001"
+     client expect  /LVS1UST1AH..00........3005\?\?\?\?3005..OK${palettes[i][0]}001/
+}

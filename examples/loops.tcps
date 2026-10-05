@@ -1,0 +1,43 @@
+# Loops, arrays and ${...} interpolation. All values are resolved when the script is loaded,
+# so mistakes (bad index, unknown name, missing brace) are reported with a line number before
+# anything is sent.
+#
+#   array NAME ["a", "b", "c"]      string constants (top level only; same escapes as send strings)
+#   repeat N { ... }                loop variable is "i", counting from 0
+#   repeat N as k { ... }           name the variable (needed when loops are nested)
+#   repeat NAME [as k] { ... }      iterate over an array: k = 0 .. size-1
+#   repeat NAME.length { ... }      same count as the array size
+#   ${i}  ${i+1}  ${i-1}  ${i%3}    number (one operator at most); \$ gives a literal $
+#   ${NAME[i]}  ${NAME[i+1]}  ${NAME[0]}  ${NAME.length}
+#
+# ${...} works in send "...", expect "...", contains "..." and inside /regex/
+# (array elements are inserted as literal text there).
+
+timeout 10s
+array palettes ["A", "B", "C"]
+array codes    ["x1", "x2", "x3"]
+
+repeat 3 {
+    client send   "this is message for ${palettes[i]}"
+    client expect "ACK ${palettes[i]}"
+    pause 200ms
+}
+
+repeat palettes as p {
+    server send   "item ${p+1}/${palettes.length}: ${palettes[p]}"
+    server expect /OK\d{2}${codes[p]}/
+}
+
+repeat 2 as row {
+    repeat 2 as col {
+        client send "r${row}c${col}"
+    }
+}
+
+# Nested arrays: ${s[r][c]}, ${s[r].length}, repeat s[r] as c { ... }; rows may have different lengths
+array structure [["a1", "a2"], ["b1", "b2", "b3"], ["c1"]]
+repeat structure as r {
+    repeat structure[r] as c {
+        client send "row ${r} item ${c}/${structure[r].length}: ${structure[r][c]}"
+    }
+}

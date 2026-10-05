@@ -53,14 +53,21 @@ public interface ByteMatcher {
         };
     }
 
-    /** The whole currently buffered text must match the regex; everything buffered is consumed. */
+    /**
+     * The regex must match starting at the beginning of the buffer; only the matched part is consumed,
+     * later bytes stay for the next step. Caution: an open-ended tail (".*", "\\d+") matches as much
+     * as is buffered at that moment, so end patterns with a fixed tail.
+     */
     static ByteMatcher regex(Pattern pattern, Charset charset) {
         return new ByteMatcher() {
             @Override
             public int match(byte[] data, int len) {
                 if (len == 0) return NEED_MORE;
-                java.util.regex.Matcher m = pattern.matcher(new String(data, 0, len, charset));
-                if (m.matches()) return len;
+                String text = new String(data, 0, len, charset);
+                java.util.regex.Matcher m = pattern.matcher(text);
+                if (m.lookingAt()) {
+                    return Math.min(len, text.substring(0, m.end()).getBytes(charset).length);
+                }
                 return m.hitEnd() ? NEED_MORE : MISMATCH;
             }
 

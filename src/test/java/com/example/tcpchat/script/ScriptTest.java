@@ -90,6 +90,19 @@ class ScriptTest {
     }
 
     @Test
+    void regexConsumesOnlyTheMatchedMessage() throws Exception {
+        ByteMatcher re = ByteMatcher.regex(java.util.regex.Pattern.compile("LVS1DD..\\?\\?OK\\d{3}001"), StandardCharsets.UTF_8);
+        ReceiveBuffer b = new ReceiveBuffer();
+        b.append("LVS1DD63??OK080001LVS1DD64??OK010001".getBytes(StandardCharsets.UTF_8));
+        assertArrayEquals("LVS1DD63??OK080001".getBytes(), b.await(re, 100));
+        assertArrayEquals("LVS1DD64??OK010001".getBytes(), b.await(re, 100));
+
+        // partial data keeps waiting, a wrong start fails
+        assertEquals(ByteMatcher.NEED_MORE, re.match("LVS1DD6".getBytes(), 7));
+        assertEquals(ByteMatcher.MISMATCH, re.match("XVS1".getBytes(), 4));
+    }
+
+    @Test
     void mismatchAndTimeoutFail() {
         ReceiveBuffer b = new ReceiveBuffer();
         b.append("XYZ".getBytes());
