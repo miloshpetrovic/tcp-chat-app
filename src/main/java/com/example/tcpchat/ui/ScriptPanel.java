@@ -12,8 +12,11 @@ import java.util.Set;
 
 import com.example.tcpchat.net.ConnectionStatus;
 import com.example.tcpchat.script.Channel;
+import com.example.tcpchat.script.ProtocolRun;
 import com.example.tcpchat.script.Script;
+import com.example.tcpchat.script.ScriptChannel;
 import com.example.tcpchat.script.ScriptException;
+import com.example.tcpchat.script.groovy.GroovyRunner;
 import com.example.tcpchat.script.ScriptParser;
 import com.example.tcpchat.script.ScriptRunner;
 import com.example.tcpchat.script.Step;
@@ -50,14 +53,14 @@ public final class ScriptPanel extends VBox {
     private final TextField pathField = new TextField();
     private final Label stateLabel = new Label("No script loaded");
     private final TextArea log = new TextArea();
-    private ScriptRunner runner;
+    private ProtocolRun runner;
 
     public ScriptPanel(ClientPanel client, ServerPanel server) {
         this.client = client;
         this.server = server;
 
         pathField.setEditable(false);
-        pathField.setPromptText("Script file (.tcps)");
+        pathField.setPromptText("Script file (.tcps or .groovy)");
         HBox.setHgrow(pathField, Priority.ALWAYS);
         Button loadButton = new Button("Load...");
         Button startButton = new Button("Start protocol");
@@ -93,7 +96,7 @@ public final class ScriptPanel extends VBox {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Load protocol script");
         chooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Protocol scripts (*.tcps)", "*.tcps"),
+                new FileChooser.ExtensionFilter("Protocol scripts (*.tcps, *.groovy)", "*.tcps", "*.groovy"),
                 new FileChooser.ExtensionFilter("All files", "*.*"));
         Path current = scriptPath.get();
         if (current != null && current.getParent() != null) {
@@ -104,9 +107,15 @@ public final class ScriptPanel extends VBox {
         scriptPath.set(file.toPath());
         pathField.setText(file.getAbsolutePath());
         try {
-            Script s = read(file.toPath());
-            stateLabel.setText("Loaded: " + s.steps().size() + " steps");
-            log("Loaded " + file.getName() + " (" + s.steps().size() + " steps)");
+            if (isGroovy(file.toPath())) {
+                GroovyRunner.check(Files.readString(file.toPath(), StandardCharsets.UTF_8), file.getName());
+                stateLabel.setText("Loaded: Groovy script");
+                log("Loaded " + file.getName() + " (Groovy, compiles OK)");
+            } else {
+                Script s = read(file.toPath());
+                stateLabel.setText("Loaded: " + s.steps().size() + " steps");
+                log("Loaded " + file.getName() + " (" + s.steps().size() + " steps)");
+            }
         } catch (ScriptException | IOException e) {
             stateLabel.setText("Script error");
             log("ERROR " + e.getMessage());
@@ -117,29 +126,44 @@ public final class ScriptPanel extends VBox {
         return ScriptParser.parse(Files.readString(path, StandardCharsets.UTF_8));
     }
 
+    private static boolean isGroovy(Path path) {
+        return path.getFileName().toString().toLowerCase().endsWith(".groovy");
+    }
+
     private void start() {
-        Script script;
+        Path path = scriptPath.get();
+        Map<Channel, ScriptChannel> channels = Map.of(Channel.CLIENT, client, Channel.SERVER, server);
+        ProtocolRun r;
+        String startMessage;
         try {
-            script = read(scriptPath.get()); // re-read so external edits take effect
+            // re-read so external edits take effect
+            if (isGroovy(path)) {
+                r = GroovyRunner.create(Files.readString(path, StandardCharsets.UTF_8), path.getFileName().toString(),
+                        channels, new GroovyListener());
+                startMessage = "Groovy script started";
+            } else {
+                Script script = read(path);
+                r = new ScriptRunner(script, channels, new RunListener());
+                startMessage = "Protocol started: " + script.steps().size() + " steps";
+            }
         } catch (ScriptException | IOException e) {
             stateLabel.setText("Script error");
             log("ERROR " + e.getMessage());
             return;
         }
         log.clear();
-        ScriptRunner r = new ScriptRunner(script,
-                Map.of(Channel.CLIENT, client, Channel.SERVER, server), new RunListener());
         runner = r;
         attach(client, Channel.CLIENT, r);
         attach(server, Channel.SERVER, r);
         client.setManualSendBlocked(true);
         server.setManualSendBlocked(true);
         running.set(true);
-        log("Protocol started: " + script.steps().size() + " steps");
+        stateLabel.setText("Running...");
+        log(startMessage);
         r.start();
     }
 
-    private static void attach(ChannelPanel panel, Channel channel, ScriptRunner r) {
+    private static void attach(ChannelPanel panel, Channel channel, ProtocolRun r) {
         panel.setTaps(data -> r.onData(channel, data), (status, msg) -> {
             if (LOST.contains(status)) r.onClosed(channel, msg);
         });
@@ -147,6 +171,29 @@ public final class ScriptPanel extends VBox {
 
     private void log(String text) {
         log.appendText("[" + LocalTime.now().format(TIME) + "] " + text + "\n");
+    }
+
+    private void runFinished(String summary) {
+        client.setTaps(null, null);
+        server.setTaps(null, null);
+        client.setManualSendBlocked(false);
+        server.setManualSendBlocked(false);
+        running.set(false);
+        stateLabel.setText(summary);
+        log(summary);
+    }
+
+    /** Groovy runs call back from several script threads; hop to the JavaFX thread (order is preserved). */
+    private final class GroovyListener implements GroovyRunner.Listener {
+        @Override
+        public void log(String line) {
+            Platform.runLater(() -> ScriptPanel.this.log(line));
+        }
+
+        @Override
+        public void finished(boolean passed, String summary) {
+            Platform.runLater(() -> runFinished(summary));
+        }
     }
 
     /** Runner callbacks arrive on the runner thread; hop to the JavaFX thread. */
@@ -171,15 +218,7 @@ public final class ScriptPanel extends VBox {
 
         @Override
         public void finished(boolean passed, String summary) {
-            Platform.runLater(() -> {
-                client.setTaps(null, null);
-                server.setTaps(null, null);
-                client.setManualSendBlocked(false);
-                server.setManualSendBlocked(false);
-                running.set(false);
-                stateLabel.setText(summary);
-                log(summary);
-            });
+            Platform.runLater(() -> runFinished(summary));
         }
     }
 }

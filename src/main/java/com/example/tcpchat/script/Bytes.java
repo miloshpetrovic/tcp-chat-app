@@ -3,14 +3,14 @@ package com.example.tcpchat.script;
 import java.util.List;
 
 /** Small byte helpers shared by parser, matchers and messages. */
-final class Bytes {
+public final class Bytes {
     private static final int PREVIEW_LIMIT = 120;
 
     private Bytes() {
     }
 
     /** Printable ASCII as is, everything else as \n, \r, \t, \\ or \xNN. Truncated for long input. */
-    static String escape(byte[] data, int len) {
+    public static String escape(byte[] data, int len) {
         StringBuilder sb = new StringBuilder("\"");
         int shown = Math.min(len, PREVIEW_LIMIT);
         for (int i = 0; i < shown; i++) {
@@ -33,7 +33,7 @@ final class Bytes {
     }
 
     /** Parses tokens such as "02", "4A", "0x41". Returns null (bad token in {@code bad[0]}) on error. */
-    static byte[] parseHex(List<String> tokens, String[] bad) {
+    public static byte[] parseHex(List<String> tokens, String[] bad) {
         byte[] out = new byte[tokens.size()];
         for (int i = 0; i < out.length; i++) {
             String t = tokens.get(i);

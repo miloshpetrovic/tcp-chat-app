@@ -9,7 +9,7 @@ import java.util.Map;
  * Executes a script step by step on its own thread; never touches the GUI. The owner feeds it
  * incoming bytes with {@link #onData} and channel loss with {@link #onClosed}.
  */
-public final class ScriptRunner {
+public final class ScriptRunner implements ProtocolRun {
 
     /** Called on the runner thread. */
     public interface Listener {
@@ -35,14 +35,17 @@ public final class ScriptRunner {
         for (Channel c : Channel.values()) buffers.put(c, new ReceiveBuffer());
     }
 
+    @Override
     public void onData(Channel channel, byte[] data) {
         buffers.get(channel).append(data);
     }
 
+    @Override
     public void onClosed(Channel channel, String reason) {
         buffers.get(channel).close(reason);
     }
 
+    @Override
     public synchronized void start() {
         if (thread != null) throw new IllegalStateException("already started");
         thread = new Thread(this::run, "script-runner");
@@ -50,6 +53,7 @@ public final class ScriptRunner {
         thread.start();
     }
 
+    @Override
     public synchronized void stop() {
         if (thread != null) thread.interrupt();
     }
